@@ -21,13 +21,11 @@ public class UserDetailsImpl implements UserDetails {
     @Getter
     private long idUser;
 
-    private String username;
 
     private String email;
 
     @JsonIgnore
     private String password;
-    private boolean active;
     private Collection<? extends GrantedAuthority> authorities;
 
     private final User user;
@@ -77,8 +75,9 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public String getUsername() {
-        return username;
+        return null;
     }
+
 
     @Override
     public boolean isAccountNonExpired() {
@@ -96,10 +95,6 @@ public class UserDetailsImpl implements UserDetails {
     }
 
 
-    @Override
-    public boolean isEnabled() {
-        return this.active;
-    }
     @Override
     public boolean equals(Object o) {
         if (this == o)

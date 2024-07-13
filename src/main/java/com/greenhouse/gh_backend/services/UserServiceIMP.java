@@ -96,15 +96,12 @@ public class UserServiceIMP implements IUser {
         User user = userRepository.findByVerificationToken(verificationToken);
 
         if (user != null) {
-            // Mark the user's email as verified
             user.setVerified(true);
-            // Clear the verification token
             user.setVerificationToken(null);
-            // Save the updated user
             userRepository.save(user);
-            return true; // Email verified successfully
+            return true;
         } else {
-            return false; // Invalid verification token
+            return false;
         }
     }
 

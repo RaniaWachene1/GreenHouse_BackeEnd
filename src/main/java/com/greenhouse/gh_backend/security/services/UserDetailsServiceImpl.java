@@ -9,30 +9,17 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
     @Autowired
     UserRepository userRepository;
 
+    @Override
     @Transactional
-    public UserDetails loadUserByDetails(String email) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + email));
+                .orElseThrow(() -> new UsernameNotFoundException("User Not Found with email: " + email));
 
         return UserDetailsImpl.build(user);
-    }
-
-    public User getUserFromUserDetails(UserDetails userDetails) {
-        if (userDetails instanceof UserDetailsImpl) {
-            UserDetailsImpl userDetailsImpl = (UserDetailsImpl) userDetails;
-            return userDetailsImpl.getUser();
-        }
-        return null;
-    }
-
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return null;
     }
 }

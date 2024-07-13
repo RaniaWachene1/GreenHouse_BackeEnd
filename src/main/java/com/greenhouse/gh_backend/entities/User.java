@@ -37,6 +37,13 @@ public class User implements Serializable {
         this.lastName = lastName;
         this.email = email;
         this.password = encodedPassword;
-        this.verified = false;
+        this.verified = false; // Default to false until verified
+    }
+    public boolean isVerified() {
+        return verified;
+    }
+
+    public void setVerified(boolean verified) {
+        this.verified = verified;
     }
 }

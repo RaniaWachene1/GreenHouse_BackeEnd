@@ -7,10 +7,13 @@ import com.greenhouse.gh_backend.payload.request.SignupRequest;
 import com.greenhouse.gh_backend.payload.response.JwtResponse;
 import com.greenhouse.gh_backend.payload.response.MessageResponse;
 import com.greenhouse.gh_backend.repositories.UserRepository;
+import com.greenhouse.gh_backend.security.CodeGenerator;
 import com.greenhouse.gh_backend.security.jwt.JwtUtils;
 import com.greenhouse.gh_backend.security.services.UserDetailsImpl;
 import com.greenhouse.gh_backend.services.EmailSenderService;
+import com.greenhouse.gh_backend.services.IUser;
 import com.greenhouse.gh_backend.services.UserServiceIMP;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,8 +26,8 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.text.ParseException;
-import java.util.Collections;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 @CrossOrigin(origins = {"http://localhost:4200", "https://b94d-197-27-101-27.ngrok-free.app"}, maxAge = 3600, allowCredentials = "true")
 @RestController
@@ -39,7 +42,8 @@ public class AuthController {
 
     @Autowired
     private UserRepository userRepository;
-
+    @Autowired
+    private IUser iUser;
     @Autowired
     private UserServiceIMP userService;
 
@@ -63,27 +67,60 @@ public class AuthController {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         Role role = userDetails.getUser().getRole();
 
-        return ResponseEntity.ok(new JwtResponse(jwt, userDetails.getIdUser(), userDetails.getEmail(), Collections.singletonList(role.name())));
+        boolean profileComplete = userDetails.getUser().isProfileComplete();
+
+        return ResponseEntity.ok(new JwtResponse(jwt, userDetails.getIdUser(), userDetails.getEmail(), userDetails.getFirstName(),
+                userDetails.getLastName(), userDetails.getCompanyName(), userDetails.getSector(), userDetails.getIndustry(),
+                Collections.singletonList(role.name()), userDetails.getRevenue(), userDetails.getHeadquarters(), userDetails.getCurrency(), profileComplete));
     }
 
-    @PostMapping("/signup")
+        @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @ModelAttribute SignupRequest signUpRequest) throws ParseException {
         if (userRepository.existsByEmail(signUpRequest.getEmail())) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
         }
 
         String verificationToken = UUID.randomUUID().toString();
-        String encodedPassword = encoder.encode(signUpRequest.getPassword());
+            String verificationCode = CodeGenerator.generateVerificationCode();
 
-        User user = new User(signUpRequest.getFirstName(), signUpRequest.getLastName(), signUpRequest.getEmail(), encodedPassword);
+            String encodedPassword = encoder.encode(signUpRequest.getPassword());
+
+        User user = new User(signUpRequest.getFirstName(), signUpRequest.getLastName(), signUpRequest.getEmail(),signUpRequest.getCompanyName(), encodedPassword);
         user.setRole(Role.COMPANY);
         user.setVerificationToken(verificationToken);
         userRepository.save(user);
 
-        emailSenderService.sendVerificationEmail(user, verificationToken);
+            user.setVerificationCode(verificationCode);
+            user.setVerificationCodeExpiry(new Date(System.currentTimeMillis() + 3600 * 1000)); // 1 hour expiry
+            userRepository.save(user);
 
-        return ResponseEntity.ok(new MessageResponse("User registered successfully! Please check your email for verification."));
+            CompletableFuture.runAsync(() -> emailSenderService.sendVerificationCode(user, verificationCode));
+
+            return ResponseEntity.ok(new MessageResponse("User registered successfully! Please check your email for verification."));
     }
+    @PostMapping("/verify-code")
+    public ResponseEntity<?> verifyCode(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String code = request.get("code");
+
+        // Log the received data for debugging
+        System.out.println("Received email: " + email);
+        System.out.println("Received code: " + code);
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null || user.isVerified()) {
+            return ResponseEntity.badRequest().body("Invalid email or user already verified");
+        }
+
+        if (user.getVerificationCode().equals(code) && user.getVerificationCodeExpiry().after(new Date())) {
+            user.setVerified(true);
+            userRepository.save(user);
+            return ResponseEntity.ok(new MessageResponse("Email verified successfully!"));
+        } else {
+            return ResponseEntity.badRequest().body("Invalid or expired verification code");
+        }
+    }
+
 
     @PostMapping("/logout")
     public ResponseEntity<?> logoutUser() {
@@ -153,5 +190,50 @@ public class AuthController {
         }
 
         return ResponseEntity.ok().body("New access token");
+    }
+    @GetMapping("/getUserById/{id}")
+    public User retrieveById(@PathVariable Long id) {
+        return iUser.retrieveById(id);
+    }
+    // @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/getAllUsers")
+    public List<User> retrieveAllUsers() {
+        return iUser.retrieveAllUsers();
+    }
+    //  @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/updateUser/{id}")
+    public ResponseEntity<?> updateUser(@RequestBody User updateUser, @PathVariable Long id) {
+        try {
+            iUser.updateUser(id, updateUser);
+            return ResponseEntity.ok(new MessageResponse("User updated successfully!"));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new MessageResponse("An error occurred while updating user"));
+
+        }
+    }
+
+    @DeleteMapping("/deleteUser/{id}")
+    public void deleteById(@PathVariable Long id) {
+        try {
+            System.out.println("Received user ID: " + id);
+            iUser.deleteUser(id); // Assuming iUser is an instance of a service class
+            System.out.println("User deleted successfully");
+        } catch (Exception e) {
+            System.out.println("Error deleting user: " + e.getMessage());
+        }
+    }
+    @GetMapping("/{userId}/profile-complete")
+    public ResponseEntity<Boolean> isProfileComplete(@PathVariable Long userId) {
+        return ResponseEntity.ok(userService.isProfileComplete(userId));
+    }
+
+    @PostMapping("/{userId}/complete-profile")
+    public ResponseEntity<User> completeProfile(@PathVariable Long userId, @RequestBody User updateUser) {
+        User updatedUser = userService.completeProfile(userId, updateUser);
+        return ResponseEntity.ok(updatedUser);
     }
 }

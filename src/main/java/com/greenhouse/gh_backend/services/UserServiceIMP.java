@@ -46,7 +46,25 @@ public class UserServiceIMP implements IUser {
         if (updateUser.getLastName() != null) {
             existingUser.setLastName(updateUser.getLastName());
         }
-
+        if (updateUser.getCompanyName() != null) {
+            existingUser.setCompanyName(updateUser.getCompanyName());
+        }
+        if (updateUser.getSector() != null) {
+            existingUser.setSector(updateUser.getSector());
+        }
+        if (updateUser.getIndustry() != null) {
+            existingUser.setIndustry(updateUser.getIndustry());
+        }
+        if (updateUser.getRevenue() != null) {
+            existingUser.setRevenue(updateUser.getRevenue());
+        }
+        if (updateUser.getHeadquarters() != null) {
+            existingUser.setHeadquarters(updateUser.getHeadquarters());
+        }
+        if (updateUser.getCurrency() != null) {
+            existingUser.setCurrency(updateUser.getCurrency());
+        }
+        existingUser.setProfileComplete(updateUser.isProfileComplete());
         userRepository.save(existingUser);
     }
 
@@ -82,7 +100,7 @@ public class UserServiceIMP implements IUser {
             user.setResetPasswordToken(null);
             user.setResetPasswordTokenExpiry(null);
             userRepository.save(user);
-            // Password reset successful, notify user
+
         } else {
             // Invalid or expired token, notify user
         }
@@ -105,23 +123,22 @@ public class UserServiceIMP implements IUser {
         }
     }
 
+    public boolean isProfileComplete(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+        return user.isProfileComplete();
+    }
 
+    public User completeProfile(Long userId, User updateUser) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        user.setSector(updateUser.getSector());
+        user.setIndustry(updateUser.getIndustry());
+        user.setRevenue(updateUser.getRevenue());
+        user.setHeadquarters(updateUser.getHeadquarters());
+        user.setCurrency(updateUser.getCurrency());
+        user.setProfileComplete(true);
+        return userRepository.save(user); // Return the updated user
+    }
 }

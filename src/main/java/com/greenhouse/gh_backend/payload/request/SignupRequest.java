@@ -8,6 +8,8 @@ public class SignupRequest {
     private Set<String> role;
     private String firstName;
     private String lastName;
+    private String companyName;
+
     private String password;
 
     // Getters and Setters
@@ -50,5 +52,13 @@ public class SignupRequest {
 
     public void setRole(Set<String> role) {
         this.role = role;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    public void setCompanyName(String companyName) {
+        this.companyName = companyName;
     }
 }

@@ -1,7 +1,8 @@
 package com.greenhouse.gh_backend.security;
 import java.security.SecureRandom;
 
-public class CodeGenerator {
+public class
+CodeGenerator {
     private static final String CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     private static final int CODE_LENGTH = 6;
     private static final SecureRandom RANDOM = new SecureRandom();

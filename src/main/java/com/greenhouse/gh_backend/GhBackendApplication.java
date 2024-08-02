@@ -5,7 +5,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 @EnableAsync
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.greenhouse.gh_backend")
+
 public class GhBackendApplication {
 
     public static void main(String[] args) {

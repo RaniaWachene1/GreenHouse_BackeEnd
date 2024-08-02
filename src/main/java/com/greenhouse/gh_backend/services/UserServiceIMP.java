@@ -5,6 +5,8 @@ import com.greenhouse.gh_backend.repositories.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -15,8 +17,15 @@ public class UserServiceIMP implements IUser {
     private UserRepository userRepository;
 
 
+    private final List<String> disallowedDomains = Arrays.asList(
+            "gmail.com", "yahoo.com", "hotmail.com", "aol.com", "outlook.com",
+            "icloud.com", "mail.com", "gmx.com", "yandex.com", "protonmail.com"
+    );
     @Override
     public User addUser(User user) {
+        if (!isCompanyEmail(user.getEmail())) {
+            throw new IllegalArgumentException("Email must be a company email");
+        }
         try {
 
             return userRepository.save(user);
@@ -140,5 +149,9 @@ public class UserServiceIMP implements IUser {
         user.setCurrency(updateUser.getCurrency());
         user.setProfileComplete(true);
         return userRepository.save(user); // Return the updated user
+    }
+    public boolean isCompanyEmail(String email) {
+        String domain = email.substring(email.indexOf("@") + 1).toLowerCase();
+        return domain.contains(".") && !disallowedDomains.contains(domain);
     }
 }

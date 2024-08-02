@@ -79,7 +79,9 @@ public class AuthController {
         if (userRepository.existsByEmail(signUpRequest.getEmail())) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
         }
-
+            if (!userService.isCompanyEmail(signUpRequest.getEmail())) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Error: Email must be a company email!"));
+            }
         String verificationToken = UUID.randomUUID().toString();
             String verificationCode = CodeGenerator.generateVerificationCode();
 

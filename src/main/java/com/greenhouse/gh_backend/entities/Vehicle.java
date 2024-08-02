@@ -32,11 +32,9 @@ public class Vehicle implements Serializable {
     private String carType;
     private String usageData;
 
-    @NotBlank(message = "Fuel type is required")
     @Size(max = 50, message = "Fuel type must be less than 50 characters")
     private String fuelType;
 
-    @NotNull(message = "Fuel consumption is required")
     private double fuelConsumption; // in liters or gallons
 
     private double co2Emissions;

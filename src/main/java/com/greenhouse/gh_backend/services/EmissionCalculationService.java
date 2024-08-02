@@ -7,6 +7,8 @@ import com.greenhouse.gh_backend.entities.User;
 import com.greenhouse.gh_backend.repositories.EmissionRepository;
 import com.greenhouse.gh_backend.repositories.LocationRepository;
 import com.greenhouse.gh_backend.repositories.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,9 +26,19 @@ public class EmissionCalculationService {
     private UserRepository userRepository;
     // Emission factors
     // Emission factors for different fuel types (example values)
-    private static final double DIESEL_CO2_EMISSION_FACTOR = 2.68; // kg CO2 per liter
-    private static final double DIESEL_CH4_EMISSION_FACTOR = 0.0001; // kg CH4 per liter
-    private static final double DIESEL_N2O_EMISSION_FACTOR = 0.0001; // kg N2O per liter
+    private static final Logger logger = LoggerFactory.getLogger(EmissionCalculationService.class);
+
+    // Emission factors for Diesel Fuel (example values)
+    // Emission factors for Diesel Fuel
+    private static final double CO2_EMISSION_FACTOR_DIESEL = 2.68; // kg CO2 per liter
+    private static final double CH4_EMISSION_FACTOR_DIESEL = 0.001; // kg CH4 per liter
+    private static final double N2O_EMISSION_FACTOR_DIESEL = 0.0001; // kg N2O per liter
+    // Emission factors for other fuel types (example values)
+    private static final double CO2_EMISSION_FACTOR_AVIATION = 2.33; // kg CO2 per liter
+    private static final double CH4_EMISSION_FACTOR_AVIATION = 0.001; // kg CH4 per liter
+    private static final double N2O_EMISSION_FACTOR_AVIATION = 0.0001; // kg N2O per liter
+//
+
     private static final double CO2_EMISSION_FACTOR = 5.3;       // kg CO2 per therm
     private static final double CH4_EMISSION_FACTOR = 0.001;     // kg CH4 per therm
     private static final double N2O_EMISSION_FACTOR = 0.0001;    // kg N2O per therm
@@ -50,32 +62,35 @@ public class EmissionCalculationService {
         double totalEmissionsKg = co2Emissions + ch4Emissions + n2oEmissions + upstreamEmissions;
         return totalEmissionsKg / 1000; // Convert to metric tons (tCO2e)
     }
+
     public double calculateCO2FromVehicle(double fuelConsumption, String fuelType) {
         double co2Emissions = 0;
         double ch4Emissions = 0;
         double n2oEmissions = 0;
 
-        switch (fuelType.toLowerCase()) {
-            case "diesel fuel":
-                co2Emissions = fuelConsumption * DIESEL_CO2_EMISSION_FACTOR;
-                ch4Emissions = fuelConsumption * DIESEL_CH4_EMISSION_FACTOR * CH4_GWP;
-                n2oEmissions = fuelConsumption * DIESEL_N2O_EMISSION_FACTOR * N2O_GWP;
-                break;
-            // Add more cases for other fuel types
+        logger.info("Calculating CO2 emissions for fuel type: {}", fuelType);
+        logger.info("Fuel Consumption: {}", fuelConsumption);
+
+        if (fuelType.trim().equalsIgnoreCase("Diesel Fuel")) {
+            co2Emissions = fuelConsumption * CO2_EMISSION_FACTOR_DIESEL;
+            ch4Emissions = fuelConsumption * CH4_EMISSION_FACTOR_DIESEL * CH4_GWP;
+            n2oEmissions = fuelConsumption * N2O_EMISSION_FACTOR_DIESEL * N2O_GWP;
+        } else if (fuelType.trim().equalsIgnoreCase("Aviation Spirit")) {
+            co2Emissions = fuelConsumption * CO2_EMISSION_FACTOR_AVIATION;
+            ch4Emissions = fuelConsumption * CH4_EMISSION_FACTOR_AVIATION * CH4_GWP;
+            n2oEmissions = fuelConsumption * N2O_EMISSION_FACTOR_AVIATION * N2O_GWP;
+        } else {
+            logger.warn("Unknown fuel type: {}", fuelType);
         }
 
+        logger.info("CO2 Emissions: {}", co2Emissions);
+        logger.info("CH4 Emissions: {}", ch4Emissions);
+        logger.info("N2O Emissions: {}", n2oEmissions);
+
         double totalEmissionsKg = co2Emissions + ch4Emissions + n2oEmissions;
-        double totalEmissionsTons = totalEmissionsKg / 1000; // Convert to metric tons (tCO2e)
+        logger.info("Total Emissions (kg): {}", totalEmissionsKg);
 
-        System.out.println("Fuel Type: " + fuelType);
-        System.out.println("Fuel Consumption: " + fuelConsumption);
-        System.out.println("CO2 Emissions: " + co2Emissions);
-        System.out.println("CH4 Emissions: " + ch4Emissions);
-        System.out.println("N2O Emissions: " + n2oEmissions);
-        System.out.println("Total Emissions (kg): " + totalEmissionsKg);
-        System.out.println("Total Emissions (tCO2e): " + totalEmissionsTons);
-
-        return totalEmissionsTons;
+        return totalEmissionsKg / 1000; // Convert to metric tons (tCO2e)
     }
     public double calculateCO2FromElectricity(double electricityConsumption) {
         double co2Emissions = electricityConsumption * ELECTRICITY_CO2_EMISSION_FACTOR;
